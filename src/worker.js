@@ -50,7 +50,7 @@ async function handleApi(request, env, url) {
     const row = await env.DB.prepare(
       'SELECT COUNT(*) AS n, COALESCE(MAX(seq), 0) AS seq FROM records'
     ).first();
-    return json({ ok: true, db: 'ok', records: row.n, seq: row.seq });
+    return json({ ok: true, db: 'ok', records: row.n, seq: row.seq, version: '1.0.1' });
   }
 
   if (pathname === '/api/bootstrap' && method === 'GET') {
