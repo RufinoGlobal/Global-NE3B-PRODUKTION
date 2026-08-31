@@ -2639,20 +2639,17 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
           </div>
         </div>
         <div data-noprint="1" style="display:flex;align-items:center;gap:9px">
-          <button sc-camel-on-click="{{ saveFile }}" style="border:none;background:#1a7f4b;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:pointer" style-hover="background:#16693e" title="Backup der Cloud-Datenbank als JSON-Datei herunterladen">💾 Backup herunterladen</button>
-          <button sc-camel-on-click="{{ loadFile }}" style="border:1px solid #d6d6d0;background:#fff;color:#3a3a3e;font-size:13px;font-weight:600;padding:8px 13px;border-radius:7px;cursor:pointer" style-hover="border-color:#221f72;color:#221f72" title="JSON-Backup in die Cloud-Datenbank importieren">📂 Backup importieren</button>
           <div sc-camel-on-click="{{ toggleLock }}" style="{{ lockStyle }}" title="Synchronisierungsstatus – klicken speichert sofort">
             <span>{{ lockIcon }}</span>
             <span>{{ lockLabel }}</span>
           </div>
-          <button sc-camel-on-click="{{ doPrint }}" style="border:1px solid #d6d6d0;background:#fff;color:#3a3a3e;font-size:13px;font-weight:600;padding:8px 13px;border-radius:7px;cursor:pointer" style-hover="border-color:#221f72;color:#221f72">Drucken / PDF</button>
-          <button sc-camel-on-click="{{ doPrintAll }}" style="border:none;background:#221f72;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:pointer" style-hover="background:#2e2a95">Alles drucken · alle Gebiete</button>
+          <button sc-camel-on-click="{{ exportFotoExcel }}" style="{{ exportBtnStyle }}" title="{{ exportBtnTitle }}">📤 Export: Foto + Excel</button>
           <div style="font-size:11.5px;color:#8a8a84;font-family:'IBM Plex Mono', monospace">{{ savedNote }}</div>
         </div>
       </div>
       <div data-noprint="1" style="display:flex;align-items:center;gap:9px;padding:9px 12px;background:#fdf6f7;border:1px solid #e6c9ce;border-radius:8px;flex-wrap:wrap">
         <span style="font-family:'IBM Plex Mono', monospace;font-size:10.5px;font-weight:600;color:#fff;background:#c2182f;padding:2px 6px;border-radius:3px;white-space:nowrap">WICHTIG</span>
-        <span style="font-size:12.5px;color:#4a1119;line-height:1.5">Alle Daten liegen zentral in der Cloud-Datenbank und werden bei jeder Änderung automatisch gespeichert – alle Nutzer sehen denselben Stand. <strong>💾 Backup herunterladen</strong> sichert zusätzlich eine JSON-Kopie ({{ fileName }}).</span>
+        <span style="font-size:12.5px;color:#4a1119;line-height:1.5">Alle Daten liegen zentral in der Cloud-Datenbank und werden bei jeder Änderung automatisch gespeichert. Alle Nutzer sehen denselben Stand.</span>
         <div style="flex:1"></div>
         <span style="font-size:11.5px;color:#8a8a84;font-family:'IBM Plex Mono', monospace;white-space:nowrap">{{ fileNote }}</span>
       </div>
@@ -2935,9 +2932,7 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
             </div>
             <div data-noprint="1" style="display:flex;gap:9px">
               <button sc-camel-on-click="{{ addRow }}" style="border:none;background:#221f72;color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:pointer" style-hover="background:#2e2a95">+ Zeile</button>
-              <button sc-camel-on-click="{{ startWeek }}" style="border:1px solid #d6d6d0;background:#fff;color:#3a3a3e;font-size:13px;font-weight:600;padding:8px 13px;border-radius:7px;cursor:pointer" style-hover="border-color:#221f72;color:#221f72">Neue Woche starten →</button>
-              <button sc-camel-on-click="{{ exportNeueExcel }}" style="border:1px solid #bcdfcb;background:#f2faf5;color:#14603a;font-size:13px;font-weight:600;padding:8px 13px;border-radius:7px;cursor:pointer" style-hover="background:#e6f5eb" title="Excel-Datei mit allen Zeilen im Status NEU (Prozess 1 oder 2) – zum Einfügen beim Generalunternehmer">📊 Excel: Neue Produktion</button>
-            </div>
+              <button sc-camel-on-click="{{ startWeek }}" style="border:1px solid #d6d6d0;background:#fff;color:#3a3a3e;font-size:13px;font-weight:600;padding:8px 13px;border-radius:7px;cursor:pointer" style-hover="border-color:#221f72;color:#221f72">Neue Woche starten →</button>            </div>
           </div>
         </div>
 
@@ -3165,7 +3160,6 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
 </x-dc>
 <script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1760,&quot;height&quot;:1100}}">
 const KEY = 'ggb-ne3-manager-v1';
-const FILENAME = 'NE3-DATEN-NICHT-LOESCHEN.json';
 const COLS = [
   { key:'has', label:'Hausanschluss', code:'OXG5.1', unit:'Stk', dec:0 },
   { key:'gf', label:'GF Kabel', code:'OXG6.4', unit:'m', dec:1 },
@@ -3220,7 +3214,6 @@ class Component extends DCLogic {
     this.state.data = (typeof window !== 'undefined' && window.CHECKLIST_DATA) || null;
     this.undoStack = [];
     this.redoStack = [];
-    this.suppressFlush = false;
   }
 
   componentDidMount() {
@@ -3432,7 +3425,7 @@ class Component extends DCLogic {
       lists:s.lists, belege:s.belege, over:s.over, extra:s.extra, extraAreas:s.extraAreas }, null, 1);
   }
 
-  async exportNeueExcel() {
+  exportNeueExcel() {
     const sel = this.state.sel;
     if (!sel) return;
     const lst = this.listFor(sel.pdp) || { meta:{ mfg:'', datum:'' }, rows: [] };
@@ -3462,125 +3455,252 @@ class Component extends DCLogic {
       </table>
     </body></html>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+    this.downloadBlob(blob, this.exportBaseName() + '.xls');
+  }
+
+  // Gemeinsame Dateinamen-Basis für Foto (.png) und Excel (.xls) – eine Quelle
+  // der Wahrheit, identisch mit dem bisherigen Excel-Dateinamen ohne Endung.
+  exportBaseName() {
+    const sel = this.state.sel;
+    const lst = this.listFor(sel.pdp) || { meta: { mfg: '', datum: '' }, rows: [] };
     const datumRaw = ((lst.meta || {}).datum || '').trim();
     const datumParts = datumRaw.split(/[.\/\-]/).filter(Boolean);
     const datumShort = datumParts.length >= 2 ? `${datumParts[0].padStart(2, '0')}-${datumParts[1].padStart(2, '0')}` : datumRaw;
-    const suggestedName = `Global NE3 Produktion ${sel.pdp}${datumShort ? ' ' + datumShort : ''}.xls`;
-
-    if (window.showSaveFilePicker) {
-      this.suppressFlush = true;
-      try {
-        const handle = await window.showSaveFilePicker({ suggestedName,
-          types: [{ description: 'Excel-Datei', accept: { 'application/vnd.ms-excel': ['.xls'] } }] });
-        const w = await handle.createWritable();
-        await w.write(blob);
-        await w.close();
-      } catch (e) {
-        if (e && e.name === 'AbortError') return;
-      } finally {
-        this.suppressFlush = false;
-      }
-      return;
-    }
-
+    return `Global NE3 Produktion ${sel.pdp}${datumShort ? ' ' + datumShort : ''}`;
+  }
+  downloadBlob(blob, name) {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = suggestedName;
+    a.download = name;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
-
-  idb() {
-    return new Promise((res, rej) => {
-      const rq = indexedDB.open('ggb-ne3-file', 1);
-      rq.onupgradeneeded = () => rq.result.createObjectStore('h');
-      rq.onsuccess = () => res(rq.result);
-      rq.onerror = () => rej(rq.error);
-    });
-  }
-  async keepHandle(h) {
-    try { const db = await this.idb(); const tx = db.transaction('h', 'readwrite'); tx.objectStore('h').put(h, 'file'); } catch (e) {}
-  }
-  async recallHandle() {
-    try {
-      const db = await this.idb();
-      return await new Promise(res => { const rq = db.transaction('h', 'readonly').objectStore('h').get('file'); rq.onsuccess = () => res(rq.result || null); rq.onerror = () => res(null); });
-    } catch (e) { return null; }
+  downloadDataUrl(url, name) {
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
-  async writeHandle(text) {
-    const w = await this.fileHandle.createWritable();
-    await w.write(text); await w.close();
+  // Ein Klick → genau zwei Dateien: PNG-Produktionsdokument + Excel „Neue
+  // Produktion". Beide Downloads starten synchron in derselben Nutzer-Geste,
+  // damit Browser den zweiten Download nicht blockieren.
+  exportFotoExcel() {
+    if (!this.state.sel) return;
+    const base = this.exportBaseName();
+    this.downloadDataUrl(this.renderListPng(), base + '.png');
+    this.exportNeueExcel();
   }
 
-  async saveToFile(silent) {
-    if (!window.showSaveFilePicker) {
-      if (silent) return;
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([this.snapshot()], { type: 'application/json' }));
-      a.download = FILENAME; a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-      this.setState({ fileNote: 'Browser kann Dateien nicht überschreiben – bitte Chrome oder Edge benutzen' });
-      return;
-    }
-    try {
-      if (!this.fileHandle) {
-        if (silent) return;
-        this.fileHandle = await window.showSaveFilePicker({ suggestedName: FILENAME,
-          types: [{ description: 'NE3 Daten', accept: { 'application/json': ['.json'] } }] });
-        await this.keepHandle(this.fileHandle);
-      }
-      const perm = await this.fileHandle.queryPermission({ mode: 'readwrite' });
-      if (perm !== 'granted') {
-        if (silent) { this.setState({ fileNote: 'Datei nicht verbunden – einmal auf 💾 Speichern klicken' }); return; }
-        if (await this.fileHandle.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
-      }
-      await this.writeHandle(this.snapshot());
-      this.setState({ fileNote: (silent ? 'automatisch gespeichert ' : 'gespeichert ') + new Date().toLocaleTimeString('de-DE') + ' → ' + this.fileHandle.name });
-    } catch (e) {
-      if (e && e.name === 'AbortError') return;
-      this.setState({ fileNote: 'Speichern fehlgeschlagen: ' + (e && e.message ? e.message : 'unbekannt') });
-    }
-  }
-
-  async connectFile() {
-    if (!window.showOpenFilePicker) { this.loadFromFile(); return; }
-    try {
-      const [h] = await window.showOpenFilePicker({ multiple: false, types: [{ description: 'NE3 Daten', accept: { 'application/json': ['.json'] } }] });
-      if (await h.queryPermission({ mode: 'readwrite' }) !== 'granted'
-        && await h.requestPermission({ mode: 'readwrite' }) !== 'granted') return;
-      const txt = await (await h.getFile()).text();
-      const dd = JSON.parse(txt);
-      this.fileHandle = h;
-      await this.keepHandle(h);
-      this.save({ lists:dd.lists || {}, belege:dd.belege || {}, over:dd.over || {}, extra:dd.extra || {}, extraAreas:dd.extraAreas || [],
-        fileNote: 'verbunden mit ' + h.name + ' – wird ab jetzt automatisch überschrieben' });
-    } catch (e) {
-      if (e && e.name === 'AbortError') return;
-      this.setState({ fileNote: 'Datei konnte nicht verbunden werden' });
-    }
-  }
-
-  autoSave() { this.queueCloudSync(); }
-
-  loadFromFile() {
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = '.json,application/json';
-    inp.onchange = () => {
-      const f = inp.files && inp.files[0];
-      if (!f) return;
-      const rd = new FileReader();
-      rd.onload = () => {
-        try {
-          const d = JSON.parse(rd.result);
-          if (!d || !d.lists) throw new Error('bad');
-          this.save({ lists:d.lists || {}, belege:d.belege || {}, over:d.over || {}, extra:d.extra || {}, extraAreas:d.extraAreas || [],
-            fileNote: 'geladen: ' + f.name });
-        } catch (e) { this.setState({ fileNote: 'Datei konnte nicht gelesen werden' }); }
-      };
-      rd.readAsText(f);
+  // Produktionsliste als PNG: feste Breite (1480 px logisch), fester Render-
+  // Maßstab (2×), feste Schrift- und Zeilenhöhen – nur die Bildhöhe wächst
+  // mit der Zeilenzahl. Ersetzt den früheren Druck/PDF-Weg.
+  renderListPng() {
+    const sel = this.state.sel;
+    const lst = this.listFor(sel.pdp) || { meta: { mfg: '', datum: '' }, rows: [] };
+    const rows = lst.rows || [];
+    const palette = {
+      new: { bg: '#f2fbf6', label: 'NEU', pill: '#1a7f4b' },
+      sent: { bg: '#fdf6f7', label: 'EINGEREICHT', pill: '#c2182f' },
+      open: { bg: '#f8f9fb', label: 'OFFEN', pill: '#a3a39c' },
+      storno: { bg: '#f7f2fb', label: 'STORNO', pill: '#6d2a91' }
     };
-    inp.click();
+    const SCALE = 2, W = 1480, M = 40;
+    const headH = 112, groupH = 26, thH = 46, rowH = 34, footGap = 22, footH = 212, botM = 36;
+    const H = headH + groupH + thH + rows.length * rowH + footGap + footH + botM;
+    const cols = [
+      { w: 44, l1: 'NR.' },
+      { w: 320, l1: 'ADRESSE' },
+      { w: 80, l1: 'HAUSAN-', l2: 'SCHLUSS', p: 1, chk: 'ha' },
+      { w: 80, l1: 'HE MIT', l2: 'HP+', p: 1, chk: 'he' },
+      { w: 80, l1: 'ABNAHME', l2: 'OXG5.1', p: 1, chk: 'p51' },
+      { w: 110, l1: 'STATUS P1', p: 1, status: 'state1' },
+      { w: 80, l1: 'HÜP', l2: 'MONTIERT', p: 2, chk: 'huep' },
+      { w: 90, l1: 'GF KABEL', l2: 'OXG6.4 · m', p: 2, val: 'gf' },
+      { w: 80, l1: 'SPLEISS', l2: 'MFG', p: 2, val: 'mfg' },
+      { w: 80, l1: 'SPLEISS', l2: 'PDP', p: 2, val: 'pdp' },
+      { w: 80, l1: 'SPLEISS', l2: 'HAUS', p: 2, val: 'haus' },
+      { w: 80, l1: 'OTDR', l2: 'OXG6.3', p: 2, val: 'otdr' },
+      { w: 80, l1: 'HÜP PROT.', l2: 'OXG6.1', p: 2, chk: 'p61' },
+      { w: 116, l1: 'STATUS P2', p: 2, status: 'state2' }
+    ];
+    const canvas = document.createElement('canvas');
+    canvas.width = W * SCALE; canvas.height = H * SCALE;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(SCALE, SCALE);
+    const mono = "'IBM Plex Mono', monospace";
+    const sans = "'Barlow', sans-serif";
+    const cond = "'Barlow Semi Condensed', sans-serif";
+    const rr = (x, y0, w, h, r) => { ctx.beginPath(); ctx.moveTo(x + r, y0); ctx.arcTo(x + w, y0, x + w, y0 + h, r); ctx.arcTo(x + w, y0 + h, x, y0 + h, r); ctx.arcTo(x, y0 + h, x, y0, r); ctx.arcTo(x, y0, x + w, y0, r); ctx.closePath(); };
+    const clip = (t, maxW) => { t = String(t == null ? '' : t); if (ctx.measureText(t).width <= maxW) return t; while (t.length && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1); return t + '…'; };
+
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+
+    // Kopf
+    ctx.fillStyle = '#221f72';
+    ctx.font = '700 27px ' + cond;
+    ctx.fillText('PRODUKTIONSLISTE ' + sel.pdp, M, M + 22);
+    ctx.fillStyle = '#77776f';
+    ctx.font = '600 12.5px ' + sans;
+    ctx.fillText('WÖCHENTLICHE MELDUNG · 2 PROZESSE GETRENNT ABRECHENBAR', M, M + 44);
+    const meta = lst.meta || { mfg: '', datum: '' };
+    ctx.font = '500 13px ' + mono;
+    ctx.fillStyle = '#3a3a3e';
+    ctx.fillText('Polygon: ' + (sel.polygon || sel.area || '—') + '  ·  PDP: ' + sel.pdp + '  ·  MFG: ' + (meta.mfg || '—') + '  ·  Aktualisierung: ' + (meta.datum || '—') + '  ·  ' + rows.length + ' Adressen', M, M + 68);
+    ctx.strokeStyle = '#dcdcd6'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(M, headH - 10); ctx.lineTo(W - M, headH - 10); ctx.stroke();
+
+    const xs = []; let cx = M;
+    cols.forEach(c => { xs.push(cx); cx += c.w; });
+    const tableW = cx - M;
+    const p1x = xs[2], p1w = cols[2].w + cols[3].w + cols[4].w + cols[5].w;
+    const p2x = xs[6], p2w = cols.slice(6).reduce((s, c) => s + c.w, 0);
+
+    // Prozess-Gruppenzeile
+    let y = headH;
+    ctx.fillStyle = '#ecebfa'; ctx.fillRect(p1x, y, p1w, groupH);
+    ctx.fillStyle = '#e6f4ea'; ctx.fillRect(p2x, y, p2w, groupH);
+    ctx.font = '700 11px ' + sans;
+    ctx.fillStyle = '#221f72'; ctx.fillText('PROZESS 1 · HAUSANSCHLUSS', p1x + 10, y + 17);
+    ctx.fillStyle = '#14603a'; ctx.fillText('PROZESS 2 · HÜP, GF KABEL, SPLEISSE & MESSUNG', p2x + 10, y + 17);
+
+    // Tabellenkopf
+    y += groupH;
+    ctx.fillStyle = '#f4f4f1'; ctx.fillRect(M, y, tableW, thH);
+    ctx.font = '700 10px ' + sans;
+    ctx.fillStyle = '#77776f';
+    ctx.textAlign = 'center';
+    cols.forEach((c, i) => {
+      const cmid = xs[i] + c.w / 2;
+      if (c.l2) { ctx.fillText(c.l1, cmid, y + 20); ctx.fillText(c.l2, cmid, y + 33); }
+      else ctx.fillText(c.l1, cmid, y + 27);
+    });
+    ctx.textAlign = 'left';
+
+    // Zeilen
+    y += thH;
+    const tableTop = y;
+    rows.forEach((r, i) => {
+      const p1 = palette[r.state1] || palette.open;
+      const p2 = palette[r.state2] || palette.open;
+      ctx.fillStyle = i % 2 ? '#fdfdfc' : '#ffffff'; ctx.fillRect(M, y, cols[0].w + cols[1].w, rowH);
+      ctx.fillStyle = p1.bg; ctx.fillRect(p1x, y, p1w, rowH);
+      ctx.fillStyle = p2.bg; ctx.fillRect(p2x, y, p2w, rowH);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#221f72';
+      ctx.beginPath(); ctx.moveTo(p1x, y); ctx.lineTo(p1x, y + rowH); ctx.stroke();
+      ctx.strokeStyle = '#1a7f4b';
+      ctx.beginPath(); ctx.moveTo(p2x, y); ctx.lineTo(p2x, y + rowH); ctx.stroke();
+      ctx.lineWidth = 1;
+      ctx.fillStyle = '#77776f'; ctx.font = '600 12px ' + mono; ctx.textAlign = 'center';
+      ctx.fillText(String(i + 1).padStart(2, '0'), xs[0] + cols[0].w / 2, y + 21);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#1c1c1e'; ctx.font = '500 12.5px ' + sans;
+      ctx.fillText(clip(r.addr, cols[1].w - 20), xs[1] + 10, y + 21);
+      cols.forEach((c, ci) => {
+        const cmid = xs[ci] + c.w / 2;
+        if (c.chk) {
+          const tone = c.p === 1 ? '#221f72' : '#1a7f4b';
+          rr(cmid - 9, y + rowH / 2 - 9, 18, 18, 4);
+          if (r[c.chk]) {
+            ctx.fillStyle = tone; ctx.fill();
+            ctx.fillStyle = '#fff'; ctx.font = '700 12px ' + sans; ctx.textAlign = 'center';
+            ctx.fillText('✓', cmid, y + rowH / 2 + 4);
+            ctx.textAlign = 'left';
+          } else { ctx.strokeStyle = '#d2d2ca'; ctx.stroke(); }
+        } else if (c.val) {
+          ctx.fillStyle = '#1c1c1e'; ctx.font = '500 12.5px ' + mono; ctx.textAlign = 'center';
+          ctx.fillText(String(r[c.val] == null ? '' : r[c.val]), cmid, y + 21);
+          ctx.textAlign = 'left';
+        } else if (c.status) {
+          const p = c.status === 'state1' ? p1 : p2;
+          ctx.font = '700 9.5px ' + sans;
+          const tw = ctx.measureText(p.label).width + 16;
+          rr(cmid - tw / 2, y + rowH / 2 - 9, tw, 18, 9);
+          ctx.fillStyle = p.pill; ctx.fill();
+          ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+          ctx.fillText(p.label, cmid, y + rowH / 2 + 3.5);
+          ctx.textAlign = 'left';
+        }
+      });
+      ctx.strokeStyle = '#eeeee8';
+      ctx.beginPath(); ctx.moveTo(M, y + rowH - 0.5); ctx.lineTo(W - M, y + rowH - 0.5); ctx.stroke();
+      y += rowH;
+    });
+    ctx.strokeStyle = '#dcdcd6';
+    ctx.strokeRect(M + 0.5, headH + 0.5, tableW - 1, groupH + thH + rows.length * rowH - 1);
+
+    // Summen je OXG-Position – identische Rechenlogik wie in der Ansicht
+    const acc = { HA: [0, 0, 0], '5.1': [0, 0, 0], '6.1': [0, 0, 0], '6.4': [0, 0, 0], '6.2': [0, 0, 0], '6.3': [0, 0, 0] };
+    const slotOf = st => st === 'new' ? 0 : st === 'sent' ? 1 : -1;
+    rows.forEach(r => {
+      const s1 = slotOf(r.state1);
+      if (s1 >= 0) {
+        if (r.p51) acc['5.1'][s1] += 1;
+        if (r.ha) { if (r.p51) acc.HA[s1] += 1; else acc.HA[2] += 1; }
+      }
+      const s2 = slotOf(r.state2);
+      if (s2 >= 0) {
+        acc['6.4'][s2] += num(r.gf);
+        const spl = num(r.mfg) + num(r.pdp) + num(r.haus);
+        if (r.p61) { acc['6.1'][s2] += 1; acc['6.2'][s2] += spl; acc['6.3'][s2] += num(r.otdr); }
+        else { acc['6.2'][2] += spl; acc['6.3'][2] += num(r.otdr); }
+      }
+    });
+    const lineOf = (code, label, key, unit, dec) => ({ code, label, unit, neu: fmt(acc[key][0], dec), alt: fmt(acc[key][1], dec), gesperrt: acc[key][2] ? fmt(acc[key][2], dec) : '–' });
+    const countBy = k => rows.reduce((a, r) => (a[r[k]] = (a[r[k]] || 0) + 1, a), {});
+    const c1c = countBy('state1'), c2c = countBy('state2');
+    const sumTxt = c => `${c.new || 0} neu · ${c.sent || 0} eingereicht · ${c.open || 0} offen · ${c.storno || 0} storno`;
+
+    y += footGap;
+    const boxW = (tableW - 20) / 2;
+    const drawBox = (x0, title, tone, lines, summary) => {
+      ctx.fillStyle = '#fafaf8'; ctx.fillRect(x0, y, boxW, footH);
+      ctx.strokeStyle = '#dcdcd6'; ctx.strokeRect(x0 + 0.5, y + 0.5, boxW - 1, footH - 1);
+      ctx.fillStyle = tone; ctx.font = '700 12.5px ' + sans;
+      ctx.fillText(title, x0 + 14, y + 26);
+      ctx.font = '700 9.5px ' + sans; ctx.fillStyle = '#a3a39c';
+      ctx.fillText('POSITION', x0 + 14, y + 50);
+      ctx.fillText('LEISTUNG', x0 + 100, y + 50);
+      ctx.textAlign = 'right';
+      ctx.fillText('NEU', x0 + boxW - 200, y + 50);
+      ctx.fillText('EINGEREICHT', x0 + boxW - 104, y + 50);
+      ctx.fillText('GESPERRT', x0 + boxW - 18, y + 50);
+      ctx.textAlign = 'left';
+      let ly = y + 74;
+      lines.forEach(L => {
+        ctx.fillStyle = '#221f72'; ctx.font = '600 12px ' + mono;
+        ctx.fillText(L.code, x0 + 14, ly);
+        ctx.fillStyle = '#1c1c1e'; ctx.font = '500 12px ' + sans;
+        ctx.fillText(clip(L.label, boxW - 320), x0 + 100, ly);
+        ctx.font = '600 12px ' + mono; ctx.textAlign = 'right';
+        ctx.fillStyle = '#14603a'; ctx.fillText(L.neu + ' ' + L.unit, x0 + boxW - 200, ly);
+        ctx.fillStyle = '#c2182f'; ctx.fillText(L.alt + ' ' + L.unit, x0 + boxW - 104, ly);
+        ctx.fillStyle = '#a3a39c'; ctx.fillText(L.gesperrt, x0 + boxW - 18, ly);
+        ctx.textAlign = 'left';
+        ly += 26;
+      });
+      ctx.fillStyle = '#77776f'; ctx.font = '500 11px ' + mono;
+      ctx.fillText(summary, x0 + 14, y + footH - 14);
+    };
+    drawBox(M, 'PROZESS 1 · HAUSANSCHLUSS', '#221f72',
+      [lineOf('OXG5.1', 'NE3B Abnahme Protokoll', '5.1', 'Stk', 0), lineOf('—', 'Hausanschluss', 'HA', 'Stk', 0)],
+      'Prozess 1: ' + sumTxt(c1c));
+    drawBox(M + boxW + 20, 'PROZESS 2 · HÜP · GF KABEL · SPLEISSE · MESSUNG', '#14603a',
+      [lineOf('OXG6.1', 'NE3b HÜP Protokoll', '6.1', 'Stk', 0), lineOf('OXG6.4', 'GF Kabel', '6.4', 'm', 1), lineOf('OXG6.2', 'Spleiß MFG + PDP + Haus', '6.2', 'Stk', 0), lineOf('OXG6.3', 'OTDR-Messung', '6.3', 'Stk', 0)],
+      'Prozess 2: ' + sumTxt(c2c));
+
+    const d = new Date();
+    const stamp = `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    ctx.fillStyle = '#a3a39c'; ctx.font = '500 10.5px ' + mono; ctx.textAlign = 'right';
+    ctx.fillText('Exportiert: ' + stamp + ' · GLOBAL NE3B PRODUKTION', W - M, H - 14);
+    ctx.textAlign = 'left';
+
+    return canvas.toDataURL('image/png');
   }
 
   can() { return true; }
@@ -3905,11 +4025,12 @@ const seedRows = () => [blankRow(), blankRow(), blankRow(), blankRow(), blankRow
       summary1: sumTxt(c1c), summary2: sumTxt(c2c), rowCount: String((lst.rows || []).length),
       addRow: () => this.patchList(sel.pdp, cur => ({ meta: cur.meta, rows: cur.rows.concat([blankRow()]) })),
       startWeek: () => this.patchList(sel.pdp, cur => ({ meta: cur.meta, rows: cur.rows.map(r => Object.assign({}, r, { state1: r.state1 === 'new' ? 'sent' : r.state1, state2: r.state2 === 'new' ? 'sent' : r.state2 })) })),
-      exportNeueExcel: () => this.exportNeueExcel(),
-      fileName: FILENAME,
+      exportFotoExcel: () => this.exportFotoExcel(),
+      exportBtnStyle: `border:none;background:${this.state.sel ? '#1a7f4b' : '#b9d8c4'};color:#fff;font-size:13px;font-weight:600;padding:8px 14px;border-radius:7px;cursor:${this.state.sel ? 'pointer' : 'default'};white-space:nowrap`,
+      exportBtnTitle: this.state.sel
+        ? 'Foto (PNG) + Excel „Neue Produktion" für ' + this.state.sel.pdp + ' herunterladen'
+        : 'Zuerst eine Produktionsliste (PDP) öffnen',
       fileNote: this.state.fileNote || 'zentrale Cloud-Datenbank – speichert automatisch',
-      saveFile: () => { const a = document.createElement('a'); a.href = '/api/backup'; a.download = FILENAME; document.body.appendChild(a); a.click(); a.remove(); },
-      loadFile: () => this.loadFromFile(),
       locked: false,
       askPin: false,
       pin: '',
@@ -3919,19 +4040,12 @@ const seedRows = () => [blankRow(), blankRow(), blankRow(), blankRow(), blankRow
       lockStyle: (st => `display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;user-select:none;border:1px solid ${st === 'error' ? '#e2c9cd' : st === 'ok' ? '#bcdfcb' : '#e0e0da'};background:${st === 'error' ? '#fdf5f6' : st === 'ok' ? '#f2faf5' : '#fafaf8'};color:${st === 'error' ? '#a3253a' : st === 'ok' ? '#14603a' : '#77776f'}`)(this.state.sync),
       toggleLock: () => this.syncNow(),
       onPin: e => this.setState({ pin: e.target.value, pinError: false }),
-      submitPin: () => {
-        if (false) this.setState({ unlocked: true, askPin: false, pin: '', pinError: false }, () => { this.runPending(); this.saveToFile(true); });
-        else this.setState({ pinError: true, pin: '' });
-      },
-      onPinKey: e => { if (e.key === 'Enter') { if (false) this.setState({ unlocked: true, askPin: false, pin: '', pinError: false }, () => this.runPending()); else this.setState({ pinError: true, pin: '' }); } },
+      submitPin: () => {},
+      onPinKey: () => {},
       closePin: () => { this.pending = null; this.setState({ askPin: false, pin: '', pinError: false }); },
       pinHint: this.state.pinError ? 'Falscher Code – nochmal versuchen' : 'Vier Ziffern eingeben',
       pinHintStyle: `font-size:12.5px;color:${this.state.pinError ? '#c2182f' : '#8a8a84'}`,
-      savedNote: 'Cloud-Datenbank',
-      doPrint: () => window.print(),
-      doPrintAll: () => this.setState({ printing: true, area: 'ALLE', openOnly: false, query: '' }, () => {
-        setTimeout(() => { window.print(); this.setState({ printing: false }); }, 500);
-      })
+      savedNote: 'Cloud-Datenbank'
     };
   }
 }

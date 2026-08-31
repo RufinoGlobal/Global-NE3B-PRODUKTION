@@ -138,3 +138,16 @@ test('frontend is served with noindex and without PIN', async () => {
   assert.ok(!html.includes("'1374'"), 'PIN darf nicht mehr im Frontend stehen');
   assert.ok(html.includes('/api/bootstrap'), 'Cloud-Bootstrap muss eingebaut sein');
 });
+
+test('header has combined export, no backup/print controls', async () => {
+  const res = await fetch(BASE + '/');
+  const html = await res.text();
+  assert.ok(html.includes('Export: Foto + Excel'), 'kombinierter Export-Button muss existieren');
+  assert.ok(!html.includes('Backup herunterladen'), 'Backup-Download-Button muss entfernt sein');
+  assert.ok(!html.includes('Backup importieren'), 'Backup-Import-Button muss entfernt sein');
+  assert.ok(!html.includes('Drucken / PDF'), 'PDF-Druck-Button muss entfernt sein');
+  assert.ok(!html.includes('Alles drucken'), 'Alle-Gebiete-Druck muss entfernt sein');
+  assert.ok(!html.includes('window.print'), 'kein programmatischer PDF-Druck mehr');
+  assert.ok(html.includes('renderListPng'), 'PNG-Renderer muss eingebaut sein');
+  assert.ok(html.includes('exportBaseName'), 'gemeinsame Dateinamen-Basis muss existieren');
+});
