@@ -1,0 +1,27 @@
+{
+  // GLOBAL NE3B PRODUKTION – Cloudflare Worker (static frontend + API + D1)
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "global-ne3b-produktion",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "global-ne3b-production",
+      "database_id": "d6690257-4b2c-4edd-90ec-d871d830c166",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Tägliches Backup-Snapshot (siehe src/worker.js scheduled handler).
+  // R2 ist auf diesem Account nicht aktiviert – Snapshots liegen in der D1-Tabelle "backups".
+  "triggers": {
+    "crons": ["30 2 * * *"]
+  },
+  "observability": {
+    "enabled": true
+  }
+}

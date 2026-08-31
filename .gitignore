@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars
+.env
+.env.*
+*.log
+backups/
+NE3-DATEN-NICHT-LOESCHEN.json
+NE3-Manager-preview.html

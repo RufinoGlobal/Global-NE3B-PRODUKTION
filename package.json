@@ -1,0 +1,23 @@
+{
+  "name": "global-ne3b-produktion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "GLOBAL NE3B PRODUKTION – NE3 Produktions- und Payment-Tracking (Cloudflare Worker + D1)",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "node scripts/check-build.mjs",
+    "test": "node --test test/api.test.mjs",
+    "deploy": "node scripts/check-build.mjs && wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply global-ne3b-production --local",
+    "db:migrate:remote": "wrangler d1 migrations apply global-ne3b-production --remote",
+    "data:import-sql": "node scripts/generate-import-sql.mjs",
+    "data:verify": "node scripts/verify-migration.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4.127.1"
+  },
+  "allowScripts": {
+    "workerd@1.20260828.1": true
+  }
+}
