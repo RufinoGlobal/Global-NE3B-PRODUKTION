@@ -3034,9 +3034,9 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
                   <sc-raw-td style="{{ r.p1Gate }}"><div class="sc-chkbox" sc-camel-on-click="{{ r.t51 }}" style="{{ r.s51 }}">{{ r.m51 }}</div></sc-raw-td>
                   <sc-raw-td style="{{ r.p1Status }}">
                     <div style="display:flex;align-items:center;gap:7px">
-                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle1 }}" style="{{ r.pill1Style }}" title="{{ r.pill1Title }}">{{ r.pill1Label }}</div>
+                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle1 }}" style="{{ r.pill1Style }}" title="Klicken: Neu → Eingereicht → Offen → Storno">{{ r.pill1Label }}</div>
                       <sc-if value="{{ r.locked1 }}" hint-placeholder-val="{{ false }}">
-                        <span style="font-size:10.5px;font-weight:600;color:#8a8a84;letter-spacing:.02em">({{ r.under1Label }})</span>
+                        <span style="display:inline-flex;align-items:center;padding:3px 7px;border-radius:4px;background:#c2182f;color:#fff;font-size:10px;font-weight:700;letter-spacing:.07em;white-space:nowrap;user-select:none" title="{{ r.blocked1Title }}">GESPERRT</span>
                       </sc-if>
                     </div>
                   </sc-raw-td>
@@ -3049,9 +3049,9 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
                   <sc-raw-td style="{{ r.p2Gate }}"><div class="sc-chkbox" sc-camel-on-click="{{ r.t61 }}" style="{{ r.s61 }}">{{ r.m61 }}</div></sc-raw-td>
                   <sc-raw-td style="{{ r.p2Status }}">
                     <div style="display:flex;align-items:center;gap:7px">
-                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle2 }}" style="{{ r.pill2Style }}" title="{{ r.pill2Title }}">{{ r.pill2Label }}</div>
+                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle2 }}" style="{{ r.pill2Style }}" title="Klicken: Neu → Eingereicht → Offen → Storno">{{ r.pill2Label }}</div>
                       <sc-if value="{{ r.locked2 }}" hint-placeholder-val="{{ false }}">
-                        <span style="font-size:10.5px;font-weight:600;color:#8a8a84;letter-spacing:.02em">({{ r.under2Label }})</span>
+                        <span style="display:inline-flex;align-items:center;padding:3px 7px;border-radius:4px;background:#c2182f;color:#fff;font-size:10px;font-weight:700;letter-spacing:.07em;white-space:nowrap;user-select:none" title="{{ r.blocked2Title }}">GESPERRT</span>
                       </sc-if>
                     </div>
                   </sc-raw-td>
@@ -3193,9 +3193,10 @@ function hasP2Production(r) {
 function isP2Locked(r) {
   return hasP2Production(r) && !r.p61;
 }
-// Für Anzeige und Export: gesperrte Prozesse überschreiben das Status-Pill,
-// ohne den zugrunde liegenden Status zu verlieren.
-const BLOCKED_PALETTE = { bg: '#fff8ec', label: 'GESPERRT', pill: '#b06a00' };
+// Anzeige: der normale Status (NEU/EINGEREICHT/OFFEN/STORNO) bleibt immer das
+// primäre, klickbare Pill. GESPERRT ist ein zusätzliches rotes Warn-Badge
+// daneben – abgeleitet, nicht klickbar, kein gespeicherter Status.
+const BLOCKED_BADGE = { label: 'GESPERRT', red: '#c2182f' };
 
 // Summen je OXG-Position – gemeinsame Buchungslogik für die Live-Ansicht und
 // den PNG-Export. Slot 0 = neu, 1 = eingereicht, 2 = gesperrt.
@@ -3562,21 +3563,24 @@ class Component extends DCLogic {
     const SCALE = 2, W = 1480, M = 40;
     const headH = 112, groupH = 26, thH = 46, rowH = 34, footGap = 22, footH = 212, botM = 36;
     const H = headH + groupH + thH + rows.length * rowH + footGap + footH + botM;
+    // Spaltenbreiten in Summe konstant (1400 + 2×40 Rand = 1480 logische px),
+    // damit jeder Export dieselbe Breite hat. Die Status-Spalten sind breiter,
+    // weil dort Status-Pill und rotes GESPERRT-Badge nebeneinander stehen.
     const cols = [
       { w: 44, l1: 'NR.' },
-      { w: 320, l1: 'ADRESSE' },
-      { w: 80, l1: 'HAUSAN-', l2: 'SCHLUSS', p: 1, chk: 'ha' },
-      { w: 80, l1: 'HE MIT', l2: 'HP+', p: 1, chk: 'he' },
-      { w: 80, l1: 'ABNAHME', l2: 'OXG5.1', p: 1, chk: 'p51' },
-      { w: 110, l1: 'STATUS P1', p: 1, status: 'state1' },
-      { w: 80, l1: 'HÜP', l2: 'MONTIERT', p: 2, chk: 'huep' },
+      { w: 266, l1: 'ADRESSE' },
+      { w: 68, l1: 'HAUSAN-', l2: 'SCHLUSS', p: 1, chk: 'ha' },
+      { w: 68, l1: 'HE MIT', l2: 'HP+', p: 1, chk: 'he' },
+      { w: 68, l1: 'ABNAHME', l2: 'OXG5.1', p: 1, chk: 'p51' },
+      { w: 168, l1: 'STATUS P1', p: 1, status: 'state1' },
+      { w: 68, l1: 'HÜP', l2: 'MONTIERT', p: 2, chk: 'huep' },
       { w: 90, l1: 'GF KABEL', l2: 'OXG6.4 · m', p: 2, val: 'gf' },
       { w: 80, l1: 'SPLEISS', l2: 'MFG', p: 2, val: 'mfg' },
       { w: 80, l1: 'SPLEISS', l2: 'PDP', p: 2, val: 'pdp' },
       { w: 80, l1: 'SPLEISS', l2: 'HAUS', p: 2, val: 'haus' },
       { w: 80, l1: 'OTDR', l2: 'OXG6.3', p: 2, val: 'otdr' },
-      { w: 80, l1: 'HÜP PROT.', l2: 'OXG6.1', p: 2, chk: 'p61' },
-      { w: 116, l1: 'STATUS P2', p: 2, status: 'state2' }
+      { w: 68, l1: 'HÜP PROT.', l2: 'OXG6.1', p: 2, chk: 'p61' },
+      { w: 172, l1: 'STATUS P2', p: 2, status: 'state2' }
     ];
     const canvas = document.createElement('canvas');
     canvas.width = W * SCALE; canvas.height = H * SCALE;
@@ -3635,8 +3639,9 @@ class Component extends DCLogic {
     y += thH;
     const tableTop = y;
     rows.forEach((r, i) => {
-      const p1 = isP1Locked(r) ? BLOCKED_PALETTE : (palette[r.state1] || palette.open);
-      const p2 = isP2Locked(r) ? BLOCKED_PALETTE : (palette[r.state2] || palette.open);
+      const p1 = palette[r.state1] || palette.open;
+      const p2 = palette[r.state2] || palette.open;
+      const lk1 = isP1Locked(r), lk2 = isP2Locked(r);
       ctx.fillStyle = i % 2 ? '#fdfdfc' : '#ffffff'; ctx.fillRect(M, y, cols[0].w + cols[1].w, rowH);
       ctx.fillStyle = p1.bg; ctx.fillRect(p1x, y, p1w, rowH);
       ctx.fillStyle = p2.bg; ctx.fillRect(p2x, y, p2w, rowH);
@@ -3667,13 +3672,29 @@ class Component extends DCLogic {
           ctx.fillText(String(r[c.val] == null ? '' : r[c.val]), cmid, y + 21);
           ctx.textAlign = 'left';
         } else if (c.status) {
+          // Normaler Status als Pill, daneben – falls gesperrt – das rote
+          // GESPERRT-Badge. Identische Darstellung wie in der Live-Tabelle.
           const p = c.status === 'state1' ? p1 : p2;
+          const locked = c.status === 'state1' ? lk1 : lk2;
           ctx.font = '700 9.5px ' + sans;
-          const tw = ctx.measureText(p.label).width + 16;
-          rr(cmid - tw / 2, y + rowH / 2 - 9, tw, 18, 9);
+          const pw = ctx.measureText(p.label).width + 16;
+          ctx.font = '700 9px ' + sans;
+          const bw = locked ? ctx.measureText(BLOCKED_BADGE.label).width + 14 : 0;
+          const gap = locked ? 6 : 0;
+          const bx = cmid - (pw + gap + bw) / 2;
+          ctx.font = '700 9.5px ' + sans;
+          rr(bx, y + rowH / 2 - 9, pw, 18, 9);
           ctx.fillStyle = p.pill; ctx.fill();
           ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
-          ctx.fillText(p.label, cmid, y + rowH / 2 + 3.5);
+          ctx.fillText(p.label, bx + pw / 2, y + rowH / 2 + 3.5);
+          if (locked) {
+            const gx = bx + pw + gap;
+            ctx.font = '700 9px ' + sans;
+            rr(gx, y + rowH / 2 - 8, bw, 16, 4);
+            ctx.fillStyle = BLOCKED_BADGE.red; ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.fillText(BLOCKED_BADGE.label, gx + bw / 2, y + rowH / 2 + 3);
+          }
           ctx.textAlign = 'left';
         }
       });
@@ -3880,29 +3901,22 @@ const seedRows = () => [blankRow(), blankRow(), blankRow(), blankRow(), blankRow
 
     const rows = (lst.rows || []).map((r, i) => {
       const l1 = isP1Locked(r), l2 = isP2Locked(r);
-      const u1 = palette[r.state1] || palette.open, u2 = palette[r.state2] || palette.open;
-      const p1 = l1 ? BLOCKED_PALETTE : u1, p2 = l2 ? BLOCKED_PALETTE : u2;
+      const p1 = palette[r.state1] || palette.open, p2 = palette[r.state2] || palette.open;
       const b = 'padding:8px 8px;border-bottom:1px solid #eeeee8;vertical-align:middle';
       const c1 = `${b};background:${p1.bg}`, c2 = `${b};background:${p2.bg}`;
       return {
         no: String(i + 1).padStart(2, '0'), addr: r.addr, gf: r.gf, mfg: r.mfg, pdp: r.pdp, haus: r.haus, otdr: r.otdr,
         locked1: l1,
         locked2: l2,
-        under1Label: u1.label,
-        under2Label: u2.label,
-        pill1Title: l1
-          ? 'GESPERRT – NE3B Abnahme Protokoll (OXG5.1) fehlt. Gespeicherter Status: ' + u1.label + '. Klicken: Neu → Eingereicht → Offen → Storno'
-          : 'Klicken: Neu → Eingereicht → Offen → Storno',
-        pill2Title: l2
-          ? 'GESPERRT – NE3b HÜP Protokoll (OXG6.1) fehlt. Gespeicherter Status: ' + u2.label + '. Klicken: Neu → Eingereicht → Offen → Storno'
-          : 'Klicken: Neu → Eingereicht → Offen → Storno',
+        blocked1Title: 'GESPERRT – NE3B Abnahme Protokoll (OXG5.1) fehlt',
+        blocked2Title: 'GESPERRT – NE3b HÜP Protokoll (OXG6.1) fehlt',
         numStyle: `${b};background:#fff;padding-left:24px;white-space:nowrap`,
         addrStyle: `${b};background:#fff`,
         p1First: `${c1};border-left:2px solid #221f72`, p1Cell: c1,
-        p1Gate: `${c1};background:${l1 ? BLOCKED_PALETTE.bg : (r.state1 === 'open' ? '#f2f4ff' : p1.bg)}`,
+        p1Gate: `${c1};background:${r.state1 === 'open' ? '#f2f4ff' : p1.bg}`,
         p1Status: `${c1};padding-left:10px;padding-right:12px;border-right:1px solid #e2e2dc`,
         p2First: `${c2};border-left:2px solid #1a7f4b`, p2Cell: c2,
-        p2Gate: `${c2};background:${l2 ? BLOCKED_PALETTE.bg : (r.state2 === 'open' ? '#f0f7f3' : p2.bg)}`,
+        p2Gate: `${c2};background:${r.state2 === 'open' ? '#f0f7f3' : p2.bg}`,
         p2Status: `${c2};padding-left:10px;padding-right:24px`,
         spliceInput: `width:58px;border:none;background:transparent;text-align:center;font-family:'IBM Plex Mono', monospace;font-size:13px;font-weight:500;color:#1c1c1e;padding:4px 2px;${r.p61 ? '' : 'opacity:.55'}`,
         haStyle: box(r.ha, '#221f72'), haMark: r.ha ? '✓' : '',

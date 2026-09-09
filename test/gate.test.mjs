@@ -177,5 +177,91 @@ test('Anzeige und PNG-Export nutzen dieselbe Gate-Regel', () => {
   const uses2 = (src.match(/isP2Locked\(r\)/g) || []).length;
   assert.ok(uses >= 3, 'isP1Locked muss in Tabelle, Export und Buchung verwendet werden');
   assert.ok(uses2 >= 3, 'isP2Locked muss in Tabelle, Export und Buchung verwendet werden');
-  assert.ok(src.includes('BLOCKED_PALETTE'), 'gemeinsames GESPERRT-Pill muss existieren');
+  assert.ok(src.includes('BLOCKED_BADGE'), 'gemeinsames GESPERRT-Badge muss existieren');
+});
+
+// ---------------- Anzeige: Status + zusätzliches GESPERRT-Badge -------------
+// Der normale Status bleibt das primäre Pill; GESPERRT ist ein separates
+// rotes Badge daneben und ersetzt den Status niemals.
+
+const displayOf = (r) => {
+  const palette = { new: 'NEU', sent: 'EINGEREICHT', open: 'OFFEN', storno: 'STORNO' };
+  return {
+    p1: [palette[r.state1] || 'OFFEN'].concat(gate.isP1Locked(r) ? ['GESPERRT'] : []),
+    p2: [palette[r.state2] || 'OFFEN'].concat(gate.isP2Locked(r) ? ['GESPERRT'] : []),
+  };
+};
+
+test('Anzeige Test 1: OFFEN + GF ohne OXG6.1 → [OFFEN] [GESPERRT]', () => {
+  assert.deepEqual(displayOf(row({ state2: 'open', gf: '158,9' })).p2, ['OFFEN', 'GESPERRT']);
+});
+
+test('Anzeige Test 2: NEU + GF ohne OXG6.1 → [NEU] [GESPERRT]', () => {
+  assert.deepEqual(displayOf(row({ state2: 'new', gf: '158,9' })).p2, ['NEU', 'GESPERRT']);
+});
+
+test('Anzeige: EINGEREICHT + Spleiß PDP ohne OXG6.1 → [EINGEREICHT] [GESPERRT]', () => {
+  assert.deepEqual(displayOf(row({ state2: 'sent', pdp: 5 })).p2, ['EINGEREICHT', 'GESPERRT']);
+});
+
+test('Anzeige Test 3: OFFEN + HE ohne OXG5.1 → [OFFEN] [GESPERRT]', () => {
+  assert.deepEqual(displayOf(row({ state1: 'open', he: true })).p1, ['OFFEN', 'GESPERRT']);
+});
+
+test('Anzeige: P1 behält jeden gespeicherten Status neben GESPERRT', () => {
+  for (const [st, label] of [['new', 'NEU'], ['sent', 'EINGEREICHT'], ['open', 'OFFEN'], ['storno', 'STORNO']]) {
+    assert.deepEqual(displayOf(row({ state1: st, he: true })).p1, [label, 'GESPERRT']);
+  }
+});
+
+test('Anzeige Test 4: Protokoll gesetzt → nur der normale Status bleibt', () => {
+  assert.deepEqual(displayOf(row({ state2: 'open', gf: '158,9', p61: true })).p2, ['OFFEN']);
+  assert.deepEqual(displayOf(row({ state1: 'new', he: true, p51: true })).p1, ['NEU']);
+});
+
+test('Anzeige Test 5: GESPERRT-Badge ist rot und ersetzt kein Status-Pill', () => {
+  assert.match(src, /BLOCKED_BADGE = \{ label: 'GESPERRT', red: '#c2182f' \}/);
+  // Das Status-Pill nutzt weiterhin ausschließlich die Status-Palette.
+  assert.match(src, /const p1 = palette\[r\.state1\] \|\| palette\.open/);
+  assert.match(src, /const p2 = palette\[r\.state2\] \|\| palette\.open/);
+  assert.ok(!src.includes('BLOCKED_PALETTE'), 'kein Status-überschreibendes Pill mehr');
+  // Rotes Badge im Template, kein Status in Klammern.
+  const html2 = html.slice(html.indexOf('<x-dc>'), html.indexOf('type="text/x-dc"'));
+  assert.equal((html2.match(/background:#c2182f;color:#fff;font-size:10px;font-weight:700/g) || []).length, 2,
+    'rotes GESPERRT-Badge muss in Status P1 und P2 stehen');
+  assert.ok(!html2.includes('({{ r.under1Label }})'), 'Status darf nicht in Klammern erscheinen');
+});
+
+test('Anzeige Test 6: Status-Pill bleibt klickbar, Badge nicht', () => {
+  const html2 = html.slice(html.indexOf('<x-dc>'), html.indexOf('type="text/x-dc"'));
+  assert.ok(html2.includes('sc-camel-on-click="{{ r.cycle1 }}"'), 'P1-Pill muss klickbar bleiben');
+  assert.ok(html2.includes('sc-camel-on-click="{{ r.cycle2 }}"'), 'P2-Pill muss klickbar bleiben');
+  const badges = html2.split('>GESPERRT</span>');
+  assert.equal(badges.length, 3, 'genau zwei GESPERRT-Badges');
+  for (const before of badges.slice(0, 2)) {
+    const tag = before.slice(before.lastIndexOf('<span'));
+    assert.ok(!tag.includes('sc-camel-on-click'), 'GESPERRT-Badge darf nicht klickbar sein');
+  }
+});
+
+test('Anzeige Test 7: PNG-Export nutzt dieselbe Zwei-Badge-Darstellung', () => {
+  const png = src.slice(src.indexOf('renderListPng()'));
+  assert.match(png, /const locked = c\.status === 'state1' \? lk1 : lk2/);
+  assert.match(png, /ctx\.fillStyle = BLOCKED_BADGE\.red/);
+  assert.match(png, /ctx\.fillText\(BLOCKED_BADGE\.label/);
+  assert.match(png, /const p1 = palette\[r\.state1\] \|\| palette\.open/);
+});
+
+test('PNG behält die feste Gesamtbreite (Spaltensumme 1400 + 2×40 Rand)', () => {
+  const colsSrc = src.slice(src.indexOf('const cols = ['), src.indexOf('];', src.indexOf('const cols = [')));
+  const sum = [...colsSrc.matchAll(/w: (\d+)/g)].reduce((a, m) => a + Number(m[1]), 0);
+  assert.equal(sum, 1400, 'Spaltensumme muss konstant bleiben');
+  assert.match(src, /SCALE = 2, W = 1480, M = 40/);
+});
+
+test('Excel nutzt weiterhin den gespeicherten Status, nicht GESPERRT', () => {
+  const xls = src.slice(src.indexOf('exportNeueExcel()'), src.indexOf('exportBaseName()'));
+  assert.match(xls, /new:'Neu', sent:'Eingereicht', open:'Offen', storno:'Storno'/);
+  assert.ok(!xls.includes('GESPERRT'), 'Excel-Status darf nicht durch GESPERRT ersetzt werden');
+  assert.match(xls, /r\.state1 === 'new' \|\| r\.state2 === 'new'/, 'Neue-Produktion-Filter unverändert');
 });
