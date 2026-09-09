@@ -3034,9 +3034,9 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
                   <sc-raw-td style="{{ r.p1Gate }}"><div class="sc-chkbox" sc-camel-on-click="{{ r.t51 }}" style="{{ r.s51 }}">{{ r.m51 }}</div></sc-raw-td>
                   <sc-raw-td style="{{ r.p1Status }}">
                     <div style="display:flex;align-items:center;gap:7px">
-                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle1 }}" style="{{ r.pill1Style }}" title="Klicken: Neu → Eingereicht → Offen → Storno">{{ r.pill1Label }}</div>
+                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle1 }}" style="{{ r.pill1Style }}" title="{{ r.pill1Title }}">{{ r.pill1Label }}</div>
                       <sc-if value="{{ r.locked1 }}" hint-placeholder-val="{{ false }}">
-                        <span style="font-size:11px;font-weight:600;color:#b06a00;letter-spacing:.02em">gesperrt</span>
+                        <span style="font-size:10.5px;font-weight:600;color:#8a8a84;letter-spacing:.02em">({{ r.under1Label }})</span>
                       </sc-if>
                     </div>
                   </sc-raw-td>
@@ -3049,9 +3049,9 @@ window.CHECKLIST_DATA = [{"area":"BRUCKHAUSEN","polygon":"BRUCKHAUSEN-BEECK","pd
                   <sc-raw-td style="{{ r.p2Gate }}"><div class="sc-chkbox" sc-camel-on-click="{{ r.t61 }}" style="{{ r.s61 }}">{{ r.m61 }}</div></sc-raw-td>
                   <sc-raw-td style="{{ r.p2Status }}">
                     <div style="display:flex;align-items:center;gap:7px">
-                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle2 }}" style="{{ r.pill2Style }}" title="Klicken: Neu → Eingereicht → Offen → Storno">{{ r.pill2Label }}</div>
+                      <div class="sc-pill" sc-camel-on-click="{{ r.cycle2 }}" style="{{ r.pill2Style }}" title="{{ r.pill2Title }}">{{ r.pill2Label }}</div>
                       <sc-if value="{{ r.locked2 }}" hint-placeholder-val="{{ false }}">
-                        <span style="font-size:11px;font-weight:600;color:#b06a00;letter-spacing:.02em">gesperrt</span>
+                        <span style="font-size:10.5px;font-weight:600;color:#8a8a84;letter-spacing:.02em">({{ r.under2Label }})</span>
                       </sc-if>
                     </div>
                   </sc-raw-td>
@@ -3174,6 +3174,54 @@ const fmt = (n, dec) => (Math.round(n * 10) / 10).toLocaleString('de-DE', { mini
 const blankRow = () => ({ addr:'', ha:false, he:false, p51:false, state1:'open', huep:false, gf:'', mfg:'', pdp:'', haus:'', otdr:'', p61:false, state2:'open' });
 const billable = st => st === 'new' || st === 'sent';
 const PASTE_FIELDS = ['addr', 'gf', 'mfg', 'pdp', 'haus', 'otdr'];
+
+// ---- GESPERRT-Gate: eine einzige Quelle der Wahrheit ----------------------
+// Prozess 1 wird durch das NE3B Abnahme Protokoll (OXG5.1) freigegeben,
+// Prozess 2 durch das NE3b HÜP Protokoll (OXG6.1). Liegt Produktion vor,
+// ohne dass das zugehörige Protokoll abgehakt ist, ist der Prozess gesperrt.
+// GESPERRT ist ein abgeleiteter Zustand – der gespeicherte Status
+// (neu/eingereicht/offen/storno) bleibt unverändert erhalten.
+function hasP1Production(r) {
+  return Boolean(r.ha || r.he);
+}
+function isP1Locked(r) {
+  return hasP1Production(r) && !r.p51;
+}
+function hasP2Production(r) {
+  return Boolean(r.huep || num(r.gf) > 0 || num(r.mfg) > 0 || num(r.pdp) > 0 || num(r.haus) > 0 || num(r.otdr) > 0);
+}
+function isP2Locked(r) {
+  return hasP2Production(r) && !r.p61;
+}
+// Für Anzeige und Export: gesperrte Prozesse überschreiben das Status-Pill,
+// ohne den zugrunde liegenden Status zu verlieren.
+const BLOCKED_PALETTE = { bg: '#fff8ec', label: 'GESPERRT', pill: '#b06a00' };
+
+// Summen je OXG-Position – gemeinsame Buchungslogik für die Live-Ansicht und
+// den PNG-Export. Slot 0 = neu, 1 = eingereicht, 2 = gesperrt.
+// Gesperrte Prozess-Mengen landen in Slot 2 statt in neu/eingereicht.
+function accumulateRow(acc, r, slotOf) {
+  const s1 = slotOf(r.state1);
+  if (s1 >= 0) {
+    if (r.p51) acc['5.1'][s1] += 1;
+    if (r.ha) { if (isP1Locked(r)) acc.HA[2] += 1; else acc.HA[s1] += 1; }
+  }
+  const s2 = slotOf(r.state2);
+  if (s2 >= 0) {
+    const spl = num(r.mfg) + num(r.pdp) + num(r.haus);
+    if (isP2Locked(r)) {
+      acc['6.4'][2] += num(r.gf);
+      acc['6.2'][2] += spl;
+      acc['6.3'][2] += num(r.otdr);
+    } else {
+      acc['6.4'][s2] += num(r.gf);
+      if (r.p61) { acc['6.1'][s2] += 1; acc['6.2'][s2] += spl; acc['6.3'][s2] += num(r.otdr); }
+    }
+  }
+}
+if (typeof window !== 'undefined') {
+  window.NE3B_GATE = { hasP1Production, isP1Locked, hasP2Production, isP2Locked, num };
+}
 function parsePasteGrid(text) {
   const lines = String(text).replace(/\r/g, '').split('\n');
   while (lines.length && lines[lines.length - 1] === '') lines.pop();
@@ -3184,7 +3232,9 @@ function listTotals(rows) {
   const v = { has:0, gf:0, splice:0, otdr:0, huep:0 };
   (rows || []).forEach(r => {
     if (billable(r.state1) && r.ha && r.p51) v.has += 1;
-    if (billable(r.state2)) {
+    // Prozess-2-Mengen sind nur abrechenbar, wenn das HÜP Protokoll (OXG6.1)
+    // vorliegt – gesperrte Produktion (inkl. GF Kabel) zählt nicht mit.
+    if (billable(r.state2) && !isP2Locked(r)) {
       v.gf += num(r.gf);
       if (r.p61) { v.huep += 1; v.splice += num(r.mfg) + num(r.pdp) + num(r.haus); v.otdr += num(r.otdr); }
     }
@@ -3585,8 +3635,8 @@ class Component extends DCLogic {
     y += thH;
     const tableTop = y;
     rows.forEach((r, i) => {
-      const p1 = palette[r.state1] || palette.open;
-      const p2 = palette[r.state2] || palette.open;
+      const p1 = isP1Locked(r) ? BLOCKED_PALETTE : (palette[r.state1] || palette.open);
+      const p2 = isP2Locked(r) ? BLOCKED_PALETTE : (palette[r.state2] || palette.open);
       ctx.fillStyle = i % 2 ? '#fdfdfc' : '#ffffff'; ctx.fillRect(M, y, cols[0].w + cols[1].w, rowH);
       ctx.fillStyle = p1.bg; ctx.fillRect(p1x, y, p1w, rowH);
       ctx.fillStyle = p2.bg; ctx.fillRect(p2x, y, p2w, rowH);
@@ -3637,20 +3687,7 @@ class Component extends DCLogic {
     // Summen je OXG-Position – identische Rechenlogik wie in der Ansicht
     const acc = { HA: [0, 0, 0], '5.1': [0, 0, 0], '6.1': [0, 0, 0], '6.4': [0, 0, 0], '6.2': [0, 0, 0], '6.3': [0, 0, 0] };
     const slotOf = st => st === 'new' ? 0 : st === 'sent' ? 1 : -1;
-    rows.forEach(r => {
-      const s1 = slotOf(r.state1);
-      if (s1 >= 0) {
-        if (r.p51) acc['5.1'][s1] += 1;
-        if (r.ha) { if (r.p51) acc.HA[s1] += 1; else acc.HA[2] += 1; }
-      }
-      const s2 = slotOf(r.state2);
-      if (s2 >= 0) {
-        acc['6.4'][s2] += num(r.gf);
-        const spl = num(r.mfg) + num(r.pdp) + num(r.haus);
-        if (r.p61) { acc['6.1'][s2] += 1; acc['6.2'][s2] += spl; acc['6.3'][s2] += num(r.otdr); }
-        else { acc['6.2'][2] += spl; acc['6.3'][2] += num(r.otdr); }
-      }
-    });
+    rows.forEach(r => accumulateRow(acc, r, slotOf));
     const lineOf = (code, label, key, unit, dec) => ({ code, label, unit, neu: fmt(acc[key][0], dec), alt: fmt(acc[key][1], dec), gesperrt: acc[key][2] ? fmt(acc[key][2], dec) : '–' });
     const countBy = k => rows.reduce((a, r) => (a[r[k]] = (a[r[k]] || 0) + 1, a), {});
     const c1c = countBy('state1'), c2c = countBy('state2');
@@ -3842,20 +3879,30 @@ const seedRows = () => [blankRow(), blankRow(), blankRow(), blankRow(), blankRow
     const colAll = (key, tone) => ({ style: headBox(colAllChecked(key), tone), mark: colAllChecked(key) ? '✓' : '', click: toggleAllCol(key) });
 
     const rows = (lst.rows || []).map((r, i) => {
-      const p1 = palette[r.state1] || palette.open, p2 = palette[r.state2] || palette.open;
+      const l1 = isP1Locked(r), l2 = isP2Locked(r);
+      const u1 = palette[r.state1] || palette.open, u2 = palette[r.state2] || palette.open;
+      const p1 = l1 ? BLOCKED_PALETTE : u1, p2 = l2 ? BLOCKED_PALETTE : u2;
       const b = 'padding:8px 8px;border-bottom:1px solid #eeeee8;vertical-align:middle';
       const c1 = `${b};background:${p1.bg}`, c2 = `${b};background:${p2.bg}`;
       return {
         no: String(i + 1).padStart(2, '0'), addr: r.addr, gf: r.gf, mfg: r.mfg, pdp: r.pdp, haus: r.haus, otdr: r.otdr,
-        locked1: r.ha && !r.p51,
-        locked2: num(r.mfg) + num(r.pdp) + num(r.haus) + num(r.otdr) > 0 && !r.p61,
+        locked1: l1,
+        locked2: l2,
+        under1Label: u1.label,
+        under2Label: u2.label,
+        pill1Title: l1
+          ? 'GESPERRT – NE3B Abnahme Protokoll (OXG5.1) fehlt. Gespeicherter Status: ' + u1.label + '. Klicken: Neu → Eingereicht → Offen → Storno'
+          : 'Klicken: Neu → Eingereicht → Offen → Storno',
+        pill2Title: l2
+          ? 'GESPERRT – NE3b HÜP Protokoll (OXG6.1) fehlt. Gespeicherter Status: ' + u2.label + '. Klicken: Neu → Eingereicht → Offen → Storno'
+          : 'Klicken: Neu → Eingereicht → Offen → Storno',
         numStyle: `${b};background:#fff;padding-left:24px;white-space:nowrap`,
         addrStyle: `${b};background:#fff`,
         p1First: `${c1};border-left:2px solid #221f72`, p1Cell: c1,
-        p1Gate: `${c1};background:${r.state1 === 'open' ? '#f2f4ff' : p1.bg}`,
+        p1Gate: `${c1};background:${l1 ? BLOCKED_PALETTE.bg : (r.state1 === 'open' ? '#f2f4ff' : p1.bg)}`,
         p1Status: `${c1};padding-left:10px;padding-right:12px;border-right:1px solid #e2e2dc`,
         p2First: `${c2};border-left:2px solid #1a7f4b`, p2Cell: c2,
-        p2Gate: `${c2};background:${r.state2 === 'open' ? '#f0f7f3' : p2.bg}`,
+        p2Gate: `${c2};background:${l2 ? BLOCKED_PALETTE.bg : (r.state2 === 'open' ? '#f0f7f3' : p2.bg)}`,
         p2Status: `${c2};padding-left:10px;padding-right:24px`,
         spliceInput: `width:58px;border:none;background:transparent;text-align:center;font-family:'IBM Plex Mono', monospace;font-size:13px;font-weight:500;color:#1c1c1e;padding:4px 2px;${r.p61 ? '' : 'opacity:.55'}`,
         haStyle: box(r.ha, '#221f72'), haMark: r.ha ? '✓' : '',
@@ -3891,20 +3938,7 @@ const seedRows = () => [blankRow(), blankRow(), blankRow(), blankRow(), blankRow
 
     const acc = { HA:[0,0,0], '5.1':[0,0,0], '6.1':[0,0,0], '6.4':[0,0,0], '6.2':[0,0,0], '6.3':[0,0,0] };
     const slotOf = st => st === 'new' ? 0 : st === 'sent' ? 1 : -1;
-    (lst.rows || []).forEach(r => {
-      const s1 = slotOf(r.state1);
-      if (s1 >= 0) {
-        if (r.p51) acc['5.1'][s1] += 1;
-        if (r.ha) { if (r.p51) acc.HA[s1] += 1; else acc.HA[2] += 1; }
-      }
-      const s2 = slotOf(r.state2);
-      if (s2 >= 0) {
-        acc['6.4'][s2] += num(r.gf);
-        const spl = num(r.mfg) + num(r.pdp) + num(r.haus);
-        if (r.p61) { acc['6.1'][s2] += 1; acc['6.2'][s2] += spl; acc['6.3'][s2] += num(r.otdr); }
-        else { acc['6.2'][2] += spl; acc['6.3'][2] += num(r.otdr); }
-      }
-    });
+    (lst.rows || []).forEach(r => accumulateRow(acc, r, slotOf));
     const line = (code, label, key, unit, dec) => ({ code, label, unit, neu: fmt(acc[key][0], dec), alt: fmt(acc[key][1], dec), gesperrt: acc[key][2] ? fmt(acc[key][2], dec) : '–' });
     const countBy = k => (lst.rows || []).reduce((a, r) => (a[r[k]] = (a[r[k]] || 0) + 1, a), {});
     const c1c = countBy('state1'), c2c = countBy('state2');

@@ -7,7 +7,8 @@
   "scripts": {
     "dev": "wrangler dev",
     "build": "node scripts/check-build.mjs",
-    "test": "node --test test/api.test.mjs",
+    "test": "node --test test/gate.test.mjs test/api.test.mjs",
+    "test:gate": "node --test test/gate.test.mjs",
     "deploy": "node scripts/check-build.mjs && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply global-ne3b-production --local",
     "db:migrate:remote": "wrangler d1 migrations apply global-ne3b-production --remote",
